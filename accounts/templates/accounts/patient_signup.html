@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5" style="max-width: 600px;">
+    <div class="card shadow-sm">
+        <div class="card-header bg-success text-white text-center">
+            <h4 class="mb-0">Patient Registration</h4>
+        </div>
+        <div class="card-body">
+            
+            <div class="alert alert-warning text-center">
+                <strong>Important:</strong> Please use your registered <b>Resend Email Address</b> so you can receive your welcome and booking emails!
+            </div>
+            
+            <form method="POST">
+                {% csrf_token %}
+                
+                {{ form.as_p }}
+                
+                <button type="submit" class="btn btn-success w-100 mt-3">Create Patient Account</button>
+            </form>
+            <hr>
+            <div class="text-center mt-3">
+                <p>Already have an account?</p>
+                <a href="{% url 'login' %}" class="btn btn-outline-primary btn-sm">Log in here</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

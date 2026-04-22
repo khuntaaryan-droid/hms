@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5" style="max-width: 600px;">
+    <div class="card shadow-sm">
+        <div class="card-header bg-info text-white text-center">
+            <h4 class="mb-0">Doctor Registration</h4>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                {% csrf_token %}
+                
+                {{ form.as_p }}
+                
+                <button type="submit" class="btn btn-info text-white w-100 mt-3">Create Doctor Account</button>
+            </form>
+            <div class="text-center mt-3">
+                <a href="{% url 'login' %}">Already have an account? Log in here.</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

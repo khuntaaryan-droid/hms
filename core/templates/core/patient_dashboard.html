@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Patient Dashboard</title>
+</head>
+<body>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>Welcome, {{ request.user.first_name }}</h1>
+
+        <a href="{% url 'logout' %}" style="padding: 8px 15px; background-color: #ff4d4d; color: white; text-decoration: none; border-radius: 4px;">Logout</a>
+    </div>
+
+    <h3>My Upcoming Appointments</h3>
+    <ul>
+        {% for appt in appointments %}
+            <li>
+                <strong>Dr. {{ appt.doctor.user.last_name }}</strong> -
+                {{ appt.time_slot.date }} at {{ appt.time_slot.start_time }}
+            </li>
+        {% empty %}
+            <li>You have no upcoming appointments.</li>
+        {% endfor %}
+    </ul>
+
+    <hr>
+
+    <h3>Available Doctors & Time Slots</h3>
+
+    <form method="GET" action="{% url 'patient_dashboard' %}">
+        <label for="doctor-filter"><strong>Filter by Doctor:</strong></label>
+        <select name="doctor" id="doctor-filter" onchange="this.form.submit()">
+            <option value="">-- All Doctors --</option>
+
+            {% for doc in doctors %}
+                <option value="{{ doc.id }}" {% if selected_doctor_id == doc.id|stringformat:"s" %}selected{% endif %}>
+                    Dr. {{ doc.user.last_name }} - {{ doc.department }}
+                    {% if doc.degree %}({{ doc.degree }}){% endif %}
+                </option>
+            {% endfor %}
+        </select>
+    </form>
+    <br>
+
+    <ul>
+        {% for slot in slots %}
+            <li>
+                <strong>Dr. {{ slot.doctor.user.last_name }}</strong>
+                ({{ slot.doctor.department }}) <br>
+                Date: {{ slot.date }} | Time: {{ slot.start_time }} to {{ slot.end_time }}
+
+                <form method="POST" action="{% url 'book_appointment' slot.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit">Book Now</button>
+                </form>
+            </li>
+            <br>
+        {% empty %}
+            <li>No time slots are currently available for this selection.</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

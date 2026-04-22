@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Doctor Dashboard</title>
+</head>
+<body>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>Welcome, Dr. {{ request.user.last_name }}</h1>
+        <a href="{% url 'logout' %}" style="padding: 8px 15px; background-color: #ff4d4d; color: white; text-decoration: none; border-radius: 4px;">Logout</a>
+    </div>
+
+    <div style="background-color: #e6f7ff; padding: 15px; border-radius: 8px; border: 1px solid #91d5ff; margin-bottom: 20px;">
+        <h2 style="margin-top: 0; color: #0050b3;">My Upcoming Appointments</h2>
+        <ul style="list-style-type: none; padding-left: 0;">
+            {% for appt in appointments %}
+                <li style="background-color: white; padding: 15px; margin-bottom: 10px; border-left: 5px solid #1890ff; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <strong style="font-size: 1.1em;">{{ appt.time_slot.date }} | {{ appt.time_slot.start_time }} to {{ appt.time_slot.end_time }}</strong><br><br>
+                    <strong>Patient:</strong> {{ appt.patient.user.first_name }} {{ appt.patient.user.last_name }} <br>
+                    <strong>Contact Number:</strong> {{ appt.patient.contact_number|default:"No number provided" }}
+                </li>
+            {% empty %}
+                <li>No appointments booked by patients yet.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <h3>Add New Availability</h3>
+
+    {% if error_message %}
+        <p style="color: red;"><strong>Error:</strong> {{ error_message }}</p>
+    {% endif %}
+
+    <form method="POST">
+        {% csrf_token %}
+        <label>Date:</label>
+        <input type="date" name="date" id="id_date" required>
+        <label>Start Time:</label>
+        <select name="start_time" id="id_start_time" required>
+            <option value="">Select Start Time</option>
+        </select>
+        <label>End Time:</label>
+        <select name="end_time" id="id_end_time" required disabled>
+            <option value="">Select End Time</option>
+        </select>
+        <button type="submit">Add Time Slot</button>
+    </form>
+
+    <hr>
+
+    <h3>My Unbooked / Available Slots</h3>
+    <ul>
+        {% for slot in slots %}
+            <li>
+                {{ slot.date }} | {{ slot.start_time }} to {{ slot.end_time }} (Available)
+            </li>
+        {% empty %}
+            <li>You haven't added any available time slots yet.</li>
+        {% endfor %}
+    </ul>
+
+    <script>
+        // --- 1. SETUP VARIABLES & DISABLE PAST DATES ---
+        const dateInput = document.getElementById('id_date');
+        const startTimeSelect = document.getElementById('id_start_time');
+        const endTimeSelect = document.getElementById('id_end_time');
+
+        // Set the minimum date to today
+        const todayObj = new Date();
+        const todayStr = todayObj.toISOString().split('T')[0];
+        dateInput.setAttribute('min', todayStr);
+
+        // Load blocked times from Django
+        const blockedTimesByDate = JSON.parse('{{ booked_times_json|safe }}');
+
+        const times = [];
+        for (let h = 0; h < 24; h++) {
+            for (let m = 0; m < 60; m += 15) {
+                const hour = h.toString().padStart(2, '0');
+                const minute = m.toString().padStart(2, '0');
+                times.push(`${hour}:${minute}`);
+            }
+        }
+
+        // --- 2. DYNAMIC START TIME LOGIC ---
+        dateInput.addEventListener('change', function() {
+            const selectedDate = this.value;
+            const blockedTimes = blockedTimesByDate[selectedDate] || [];
+
+            // Get current time details for filtering
+            const now = new Date();
+            const currentHHmm = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+            startTimeSelect.innerHTML = '<option value="">Select Start Time</option>';
+            endTimeSelect.innerHTML = '<option value="">Select End Time</option>';
+            endTimeSelect.disabled = true;
+
+            if (selectedDate) {
+                times.forEach(time => {
+                    // CONDITION 1: Time must not be already booked [cite: 19]
+                    const isBlocked = blockedTimes.includes(time);
+
+                    // CONDITION 2: If date is today, time must be in the future
+                    let isPast = false;
+                    if (selectedDate === todayStr) {
+                        isPast = time <= currentHHmm;
+                    }
+
+                    if (!isBlocked && !isPast) {
+                        const option = document.createElement('option');
+                        option.value = time;
+                        option.textContent = time;
+                        startTimeSelect.appendChild(option);
+                    }
+                });
+            }
+        });
+
+        // --- 3. DYNAMIC END TIME LOGIC ---
+        startTimeSelect.addEventListener('change', function() {
+            const selectedStartTime = this.value;
+            const selectedDate = dateInput.value;
+            const blockedTimes = blockedTimesByDate[selectedDate] || [];
+
+            endTimeSelect.innerHTML = '<option value="">Select End Time</option>';
+
+            if (selectedStartTime) {
+                endTimeSelect.disabled = false;
+                const startIndex = times.indexOf(selectedStartTime);
+
+                for (let i = startIndex + 1; i < times.length; i++) {
+                    if (blockedTimes.includes(times[i])) {
+                        const option = document.createElement('option');
+                        option.value = times[i];
+                        option.textContent = times[i];
+                        endTimeSelect.appendChild(option);
+                        break;
+                    }
+                    const option = document.createElement('option');
+                    option.value = times[i];
+                    option.textContent = times[i];
+                    endTimeSelect.appendChild(option);
+                }
+            } else {
+                endTimeSelect.disabled = true;
+            }
+        });
+    </script>
+</body>
+</html>
